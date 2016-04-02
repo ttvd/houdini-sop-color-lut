@@ -14,6 +14,10 @@ class SOP_API SOP_ColorLUT : public SOP_Node
 
         static const char* fileExtensionFilterString();
 
+    public:
+
+        virtual bool updateParmsFlags();
+
     protected:
 
         SOP_ColorLUT(OP_Network* network, const char* name, OP_Operator* op);
@@ -26,9 +30,11 @@ class SOP_API SOP_ColorLUT : public SOP_Node
 
     protected:
 
+        bool getDefaultPalette(UT_Array<UT_Color>& palette) const;
         bool getPaletteVox(const char* file_vox, UT_Array<UT_Color>& palette) const;
 
     protected:
 
         bool getClassType(fpreal t, GA_AttributeOwner& attrib_owner) const;
+        bool useDefaultPalette(fpreal t) const;
 };

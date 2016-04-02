@@ -10,7 +10,9 @@
 #include <GU/GU_Detail.h>
 #include <PRM/PRM_SpareData.h>
 #include <FS/FS_Info.h>
+#include <CH/CH_Manager.h>
 
+#define SOP_COLORLUT_USE_DEFAULT_PALETTE "lut_use_default_palette"
 #define SOP_COLORLUT_CLASS "class"
 #define SOP_COLORLUT_FILE "file"
 #define SOP_COLORLUT_INPUT_ATTRIBUTE_NAME "lut_attributename"
@@ -18,6 +20,7 @@
 #define SOP_COLORLUT_DELETE_LUT_ATTRIBUTE "delete_lut_attribute"
 #define SOP_COLORLUT_COLOR_ATTRIBUTE "Cd"
 
+static PRM_Name s_name_use_default_palette(SOP_COLORLUT_USE_DEFAULT_PALETTE, "Use Default 256 Palette");
 static PRM_Name s_name_file(SOP_COLORLUT_FILE, "LUT File");
 static PRM_Name s_name_class(SOP_COLORLUT_CLASS, "Class");
 static PRM_Name s_name_lut_attribute_name(SOP_COLORLUT_INPUT_ATTRIBUTE_NAME, "LUT Attribute Name");
@@ -36,12 +39,14 @@ static PRM_SpareData s_spare_file_picker(PRM_SpareArgs() << PRM_SpareToken(PRM_S
     PRM_SpareData::getFileChooserModeValRead()) << PRM_SpareToken(PRM_SpareData::getFileChooserPatternToken(),
     SOP_ColorLUT::fileExtensionFilterString()));
 
+static PRM_Default s_default_use_default_palette(true);
 static PRM_Default s_default_lut_attribute_name(0.0f, SOP_COLORLUT_INPUT_ATTRIBUTE_NAME_DEFAULT);
 static PRM_Default s_default_delete_lut_attribute(false);
 
 
 PRM_Template
 SOP_ColorLUT::myTemplateList[] = {
+    PRM_Template(PRM_TOGGLE, 1, &s_name_use_default_palette, &s_default_use_default_palette),
     PRM_Template(PRM_FILE, 1, &s_name_file, 0, 0, 0, 0, &s_spare_file_picker),
     PRM_Template(PRM_ORD, 1, &s_name_class, 0, &s_choicelist_class_type),
     PRM_Template(PRM_STRING, 1, &s_name_lut_attribute_name, &s_default_lut_attribute_name),
@@ -77,12 +82,25 @@ SOP_ColorLUT::~SOP_ColorLUT()
 }
 
 
+bool
+SOP_ColorLUT::updateParmsFlags()
+{
+    bool changed = SOP_Node::updateParmsFlags();
+    bool use_default_palette = useDefaultPalette(CHgetEvalTime());
+
+    changed |= enableParm(SOP_COLORLUT_FILE, !use_default_palette);
+    return changed;
+}
+
+
 OP_ERROR
 SOP_ColorLUT::cookMySop(OP_Context& context)
 {
     fpreal t = context.getTime();
     UT_Interrupt* boss = UTgetInterrupt();
+    bool use_default_palette = useDefaultPalette(t);
 
+    UT_String lut_file_name;
     UT_Array<UT_Color> lut_palette;
 
     if(lockInputs(context) >= UT_ERROR_ABORT)
@@ -92,28 +110,30 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
 
     duplicatePointSource(0, context);
 
-    UT_String lut_file_name;
-    evalString(lut_file_name, SOP_COLORLUT_FILE, 0, t);
-
-    if(!lut_file_name || !lut_file_name.length())
+    if(!use_default_palette)
     {
-        UT_WorkBuffer buf;
-        buf.sprintf("LUT file is not specified.");
-        addError(SOP_MESSAGE, buf.buffer());
+        evalString(lut_file_name, SOP_COLORLUT_FILE, 0, t);
 
-        unlockInputs();
-        return error();
-    }
+        if(!lut_file_name || !lut_file_name.length())
+        {
+            UT_WorkBuffer buf;
+            buf.sprintf("LUT file is not specified.");
+            addError(SOP_MESSAGE, buf.buffer());
 
-    FS_Info file_info(lut_file_name);
-    if(!file_info.fileExists())
-    {
-        UT_WorkBuffer buf;
-        buf.sprintf("Specified LUT file does not exist.");
-        addError(SOP_MESSAGE, buf.buffer());
+            unlockInputs();
+            return error();
+        }
 
-        unlockInputs();
-        return error();
+        FS_Info file_info(lut_file_name);
+        if(!file_info.fileExists())
+        {
+            UT_WorkBuffer buf;
+            buf.sprintf("Specified LUT file does not exist.");
+            addError(SOP_MESSAGE, buf.buffer());
+
+            unlockInputs();
+            return error();
+        }
     }
 
     GA_AttributeOwner attribute_type = GA_ATTRIB_POINT;
@@ -151,27 +171,35 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
         return error();
     }
 
-    UT_String lut_file_extension = file_info.getExtension();
-    if(lut_file_extension == ".vox")
+    if(use_default_palette)
     {
-        if(!getPaletteVox(lut_file_name, lut_palette))
+        getDefaultPalette(lut_palette);
+    }
+    else
+    {
+        FS_Info file_info(lut_file_name);
+        UT_String lut_file_extension = file_info.getExtension();
+        if(lut_file_extension == ".vox")
+        {
+            if(!getPaletteVox(lut_file_name, lut_palette))
+            {
+                UT_WorkBuffer buf;
+                buf.sprintf("Error processing %s LUT file.", (const char*) lut_file_name);
+                addError(SOP_MESSAGE, buf.buffer());
+
+                unlockInputs();
+                return error();
+            }
+        }
+        else
         {
             UT_WorkBuffer buf;
-            buf.sprintf("Error processing %s LUT file.", (const char*) lut_file_name);
+            buf.sprintf("Unsupported type of LUT file.");
             addError(SOP_MESSAGE, buf.buffer());
 
             unlockInputs();
             return error();
         }
-    }
-    else
-    {
-        UT_WorkBuffer buf;
-        buf.sprintf("Unsupported type of LUT file.");
-        addError(SOP_MESSAGE, buf.buffer());
-
-        unlockInputs();
-        return error();
     }
 
     GA_RWHandleV3 attr_color = GA_RWHandleV3(gdp->findFloatTuple(attribute_type, SOP_COLORLUT_COLOR_ATTRIBUTE, 3));
@@ -223,6 +251,13 @@ SOP_ColorLUT::inputLabel(unsigned int idx) const
 
 
 bool
+SOP_ColorLUT::useDefaultPalette(fpreal t) const
+{
+    return evalInt(SOP_COLORLUT_USE_DEFAULT_PALETTE, 0, t);
+}
+
+
+bool
 SOP_ColorLUT::getClassType(fpreal t, GA_AttributeOwner& attrib_owner) const
 {
     int class_type = evalInt(SOP_COLORLUT_CLASS, 0, t);
@@ -260,6 +295,13 @@ SOP_ColorLUT::getClassType(fpreal t, GA_AttributeOwner& attrib_owner) const
     }
 
     return false;
+}
+
+
+bool
+SOP_ColorLUT::getDefaultPalette(UT_Array<UT_Color>& palette) const
+{
+    return true;
 }
 
 
