@@ -140,6 +140,7 @@ set(HOUDINI_SOP_COLORLUT_LIBS
     HoudiniPRM
     HoudiniOP2
     boost_system
+    tbb
 )
 
 add_definitions(
