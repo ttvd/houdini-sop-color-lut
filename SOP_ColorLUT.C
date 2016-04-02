@@ -15,10 +15,13 @@
 #define SOP_COLORLUT_FILE "file"
 #define SOP_COLORLUT_INPUT_ATTRIBUTE_NAME "lut_attributename"
 #define SOP_COLORLUT_INPUT_ATTRIBUTE_NAME_DEFAULT "color_lut"
+#define SOP_COLORLUT_DELETE_LUT_ATTRIBUTE "delete_lut_attribute"
+#define SOP_COLORLUT_COLOR_ATTRIBUTE "Cd"
 
 static PRM_Name s_name_file(SOP_COLORLUT_FILE, "LUT File");
 static PRM_Name s_name_class(SOP_COLORLUT_CLASS, "Class");
 static PRM_Name s_name_lut_attribute_name(SOP_COLORLUT_INPUT_ATTRIBUTE_NAME, "LUT Attribute Name");
+static PRM_Name s_name_delete_lut_attribute(SOP_COLORLUT_DELETE_LUT_ATTRIBUTE, "Delete LUT Attribute");
 static PRM_Name s_name_class_types[] =
 {
     PRM_Name("point", "Point"),
@@ -34,6 +37,7 @@ static PRM_SpareData s_spare_file_picker(PRM_SpareArgs() << PRM_SpareToken(PRM_S
     SOP_ColorLUT::fileExtensionFilterString()));
 
 static PRM_Default s_default_lut_attribute_name(0.0f, SOP_COLORLUT_INPUT_ATTRIBUTE_NAME_DEFAULT);
+static PRM_Default s_default_delete_lut_attribute(false);
 
 
 PRM_Template
@@ -41,6 +45,7 @@ SOP_ColorLUT::myTemplateList[] = {
     PRM_Template(PRM_FILE, 1, &s_name_file, 0, 0, 0, 0, &s_spare_file_picker),
     PRM_Template(PRM_ORD, 1, &s_name_class, 0, &s_choicelist_class_type),
     PRM_Template(PRM_STRING, 1, &s_name_lut_attribute_name, &s_default_lut_attribute_name),
+    PRM_Template(PRM_TOGGLE, 1, &s_name_delete_lut_attribute, &s_default_delete_lut_attribute),
     PRM_Template()
 };
 
@@ -169,15 +174,15 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
         return error();
     }
 
-    GA_RWHandleV3 attr_color = GA_RWHandleV3(gdp->findFloatTuple(attribute_type, "Cd", 3));
+    GA_RWHandleV3 attr_color = GA_RWHandleV3(gdp->findFloatTuple(attribute_type, SOP_COLORLUT_COLOR_ATTRIBUTE, 3));
     if(!attr_color.isValid())
     {
-        attr_color.bind(gdp->addFloatTuple(attribute_type, "Cd", 3));
+        attr_color.bind(gdp->addFloatTuple(attribute_type, SOP_COLORLUT_COLOR_ATTRIBUTE, 3));
 
         if(!attr_color.isValid())
         {
             UT_WorkBuffer buf;
-            buf.sprintf("Failed creating a color Cd attribute.");
+            buf.sprintf("Failed creating a color %s attribute.", SOP_COLORLUT_COLOR_ATTRIBUTE);
             addError(SOP_MESSAGE, buf.buffer());
 
             unlockInputs();
