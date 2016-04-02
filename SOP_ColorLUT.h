@@ -12,6 +12,8 @@ class SOP_API SOP_ColorLUT : public SOP_Node
         static OP_Node* myConstructor(OP_Network* network, const char* name, OP_Operator* op);
         static PRM_Template myTemplateList[];
 
+        static const char* fileExtensionFilterString();
+
     protected:
 
         SOP_ColorLUT(OP_Network* network, const char* name, OP_Operator* op);

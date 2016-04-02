@@ -25,11 +25,14 @@ static PRM_Name s_name_class_types[] =
 };
 
 static PRM_ChoiceList s_choicelist_class_type(PRM_CHOICELIST_SINGLE, s_name_class_types);
+static PRM_SpareData s_spare_file_picker(PRM_SpareArgs() << PRM_SpareToken(PRM_SpareData::getFileChooserModeToken(),
+    PRM_SpareData::getFileChooserModeValRead()) << PRM_SpareToken(PRM_SpareData::getFileChooserPatternToken(),
+    SOP_ColorLUT::fileExtensionFilterString()));
 
 
 PRM_Template
 SOP_ColorLUT::myTemplateList[] = {
-    PRM_Template(PRM_FILE, 1, &s_name_file, 0, 0, 0, 0, &PRM_SpareData::fileChooserModeRead),
+    PRM_Template(PRM_FILE, 1, &s_name_file, 0, 0, 0, 0, &s_spare_file_picker),
     PRM_Template(PRM_ORD, 1, &s_name_class, 0, &s_choicelist_class_type),
     PRM_Template()
 };
@@ -39,6 +42,13 @@ OP_Node*
 SOP_ColorLUT::myConstructor(OP_Network* network, const char* name, OP_Operator* op)
 {
     return new SOP_ColorLUT(network, name, op);
+}
+
+
+const char*
+SOP_ColorLUT::fileExtensionFilterString()
+{
+    return "*.vox";
 }
 
 
