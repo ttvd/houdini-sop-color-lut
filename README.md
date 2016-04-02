@@ -28,7 +28,8 @@
 ## Usage
 
 * Place Color LUT SOP in your SOP network.
-* Specify file path to a supported LUT file (please see the list of supported formats).
+* If enabled, default 256 color palette will be used ([MagicaVoxel](https://voxel.codeplex.com/) palette).
+* Optionally, specify file path to a supported LUT file (please see the list of supported formats).
 * Specify class of attribute (point, vertex, primitive or detail).
 * Specify LUT input attribute name. These values will be used to index into LUT. This can be either an integer or a float attribute.
 * Specify to optionally remove the input LUT attribute.
