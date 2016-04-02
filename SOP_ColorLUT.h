@@ -26,5 +26,9 @@ class SOP_API SOP_ColorLUT : public SOP_Node
 
     protected:
 
+        bool getPaletteVox(const char* file_vox, UT_Array<UT_Color>& palette) const;
+
+    protected:
+
         int getClassType(fpreal t) const;
 };

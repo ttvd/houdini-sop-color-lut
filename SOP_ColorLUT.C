@@ -72,6 +72,9 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
     fpreal t = context.getTime();
     UT_Interrupt* boss = UTgetInterrupt();
 
+    UT_String lut_file_name;
+    UT_Array<UT_Color> lut_palette;
+
     if(lockInputs(context) >= UT_ERROR_ABORT)
     {
         return error();
@@ -80,7 +83,6 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
     duplicatePointSource(0, context);
 
     int class_type = getClassType(t);
-    UT_String lut_file_name;
     evalString(lut_file_name, SOP_COLORLUT_FILE, 0, t);
 
     if(!lut_file_name || !lut_file_name.length())
@@ -94,7 +96,7 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
     }
 
     FS_Info file_info(lut_file_name);
-    if(!file_info.exists())
+    if(!file_info.fileExists())
     {
         UT_WorkBuffer buf;
         buf.sprintf("Specified LUT file does not exist.");
@@ -102,6 +104,83 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
 
         unlockInputs();
         return error();
+    }
+
+    UT_String lut_file_extension = file_info.getExtension();
+    if(lut_file_extension == ".vox")
+    {
+        if(!getPaletteVox(lut_file_name, lut_palette))
+        {
+            UT_WorkBuffer buf;
+            buf.sprintf("Error processing %s LUT file.", (const char*) lut_file_name);
+            addError(SOP_MESSAGE, buf.buffer());
+
+            unlockInputs();
+            return error();
+        }
+    }
+    else
+    {
+        UT_WorkBuffer buf;
+        buf.sprintf("Unsupported type of LUT file.");
+        addError(SOP_MESSAGE, buf.buffer());
+
+        unlockInputs();
+        return error();
+    }
+
+    GA_AttributeOwner attribute_type = GA_ATTRIB_POINT;
+    switch(class_type)
+    {
+        case 0:
+        {
+            attribute_type = GA_ATTRIB_POINT;
+            break;
+        }
+
+        case 1:
+        {
+            attribute_type = GA_ATTRIB_VERTEX;
+            break;
+        }
+
+        case 2:
+        {
+            attribute_type = GA_ATTRIB_PRIMITIVE;
+            break;
+        }
+
+        case 3:
+        {
+            attribute_type = GA_ATTRIB_DETAIL;
+            break;
+        }
+
+        default:
+        {
+            UT_WorkBuffer buf;
+            buf.sprintf("Unsupported attribute class type.");
+            addError(SOP_MESSAGE, buf.buffer());
+
+            unlockInputs();
+            return error();
+        }
+    }
+
+    GA_RWHandleV3 attr_color = GA_RWHandleV3(gdp->findFloatTuple(GA_ATTRIB_POINT, "Cd", 3));
+    if(!attr_color.isValid())
+    {
+        attr_color.bind(gdp->addFloatTuple(attribute_type, "Cd", 3));
+
+        if(!attr_color.isValid())
+        {
+            UT_WorkBuffer buf;
+            buf.sprintf("Failed creating a color Cd attribute.");
+            addError(SOP_MESSAGE, buf.buffer());
+
+            unlockInputs();
+            return error();
+        }
     }
 
     /*
@@ -140,6 +219,13 @@ int
 SOP_ColorLUT::getClassType(fpreal t) const
 {
     return evalInt(SOP_COLORLUT_CLASS, 0, t);
+}
+
+
+bool
+SOP_ColorLUT::getPaletteVox(const char* file_vox, UT_Array<UT_Color>& palette) const
+{
+    return true;
 }
 
 
