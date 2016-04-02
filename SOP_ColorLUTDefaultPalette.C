@@ -1,6 +1,7 @@
 #include "SOP_ColorLUTDefaultPalette.h"
 
-const unsigned int SOP_ColorLUTDefaultPalette::s_palette[256u] =
+const unsigned int
+SOP_ColorLUTDefaultPalette::s_palette[256u] =
 {
     0x00000000, 0xffffffff, 0xffccffff, 0xff99ffff, 0xff66ffff, 0xff33ffff,
     0xff00ffff, 0xffffccff, 0xffccccff, 0xff99ccff, 0xff66ccff, 0xff33ccff,
