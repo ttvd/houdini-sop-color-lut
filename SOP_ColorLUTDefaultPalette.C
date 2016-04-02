@@ -67,7 +67,7 @@ SOP_ColorLUTDefaultPalette::GetPalette(UT_Array<UT_Color>& palette)
             unsigned int data;
         } u;
 
-        u.data = s_palette[idx];
+        u.data = SOP_ColorLUTDefaultPalette::s_palette[idx];
 
         UT_Color color(UT_RGB, SYSclamp(u.r, 0, 255) / 255.0f, SYSclamp(u.g, 0, 255) / 255.0f, SYSclamp(u.b, 0, 255) / 255.0f);
         palette.append(color);
