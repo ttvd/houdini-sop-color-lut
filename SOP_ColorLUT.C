@@ -78,7 +78,6 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
     fpreal t = context.getTime();
     UT_Interrupt* boss = UTgetInterrupt();
 
-    UT_String lut_file_name;
     UT_Array<UT_Color> lut_palette;
 
     if(lockInputs(context) >= UT_ERROR_ABORT)
@@ -88,6 +87,7 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
 
     duplicatePointSource(0, context);
 
+    UT_String lut_file_name;
     evalString(lut_file_name, SOP_COLORLUT_FILE, 0, t);
 
     if(!lut_file_name || !lut_file_name.length())
@@ -111,6 +111,41 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
         return error();
     }
 
+    GA_AttributeOwner attribute_type = GA_ATTRIB_POINT;
+    if(!getClassType(t, attribute_type))
+    {
+        UT_WorkBuffer buf;
+        buf.sprintf("Unsupported attribute class type.");
+        addError(SOP_MESSAGE, buf.buffer());
+
+        unlockInputs();
+        return error();
+    }
+
+    UT_String lut_input_attribute;
+    evalString(lut_input_attribute, SOP_COLORLUT_INPUT_ATTRIBUTE_NAME, 0, t);
+    if(!lut_input_attribute || !lut_input_attribute.length() || !lut_input_attribute.isValidVariableName())
+    {
+        UT_WorkBuffer buf;
+        buf.sprintf("LUT input attribute is invalid.");
+        addError(SOP_MESSAGE, buf.buffer());
+
+        unlockInputs();
+        return error();
+    }
+
+    GA_ROHandleI attr_input_int = GA_ROHandleI(gdp->findIntTuple(attribute_type, lut_input_attribute, 1));
+    GA_ROHandleF attr_input_float = GA_ROHandleF(gdp->findFloatTuple(attribute_type, lut_input_attribute, 1));
+    if(!attr_input_int.isValid() && !attr_input_float.isValid())
+    {
+        UT_WorkBuffer buf;
+        buf.sprintf("LUT input int or float attribute not found on specified class.");
+        addError(SOP_MESSAGE, buf.buffer());
+
+        unlockInputs();
+        return error();
+    }
+
     UT_String lut_file_extension = file_info.getExtension();
     if(lut_file_extension == ".vox")
     {
@@ -128,17 +163,6 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
     {
         UT_WorkBuffer buf;
         buf.sprintf("Unsupported type of LUT file.");
-        addError(SOP_MESSAGE, buf.buffer());
-
-        unlockInputs();
-        return error();
-    }
-
-    GA_AttributeOwner attribute_type = GA_ATTRIB_POINT;
-    if(!getClassType(t, attribute_type))
-    {
-        UT_WorkBuffer buf;
-        buf.sprintf("Unsupported attribute class type.");
         addError(SOP_MESSAGE, buf.buffer());
 
         unlockInputs();
