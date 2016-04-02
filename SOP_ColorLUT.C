@@ -1,4 +1,5 @@
 #include "SOP_ColorLUT.h"
+#include "SOP_ColorLUTDefaultPalette.h"
 
 #include <UT/UT_DSOVersion.h>
 #include <UT/UT_Interrupt.h>
@@ -301,6 +302,7 @@ SOP_ColorLUT::getClassType(fpreal t, GA_AttributeOwner& attrib_owner) const
 bool
 SOP_ColorLUT::getDefaultPalette(UT_Array<UT_Color>& palette) const
 {
+    SOP_ColorLUTDefaultPalette::GetPalette(palette);
     return true;
 }
 

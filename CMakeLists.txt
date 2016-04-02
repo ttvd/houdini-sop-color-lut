@@ -128,10 +128,12 @@ message(STATUS "HFS=${HOUDINI_SOP_COLORLUT_HFS}")
 
 set(HOUDINI_SOP_COLORLUT_INCLUDE
     SOP_ColorLUT.h
+    SOP_ColorLUTDefaultPalette.h
 )
 
 set(HOUDINI_SOP_COLORLUT_SOURCE
     SOP_ColorLUT.C
+    SOP_ColorLUTDefaultPalette.C
 )
 
 set(HOUDINI_SOP_COLORLUT_LIBS
