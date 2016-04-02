@@ -30,5 +30,5 @@ class SOP_API SOP_ColorLUT : public SOP_Node
 
     protected:
 
-        int getClassType(fpreal t) const;
+        bool getClassType(fpreal t, GA_AttributeOwner& attrib_owner) const;
 };

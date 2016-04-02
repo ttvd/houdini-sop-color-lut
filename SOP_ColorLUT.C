@@ -82,7 +82,6 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
 
     duplicatePointSource(0, context);
 
-    int class_type = getClassType(t);
     evalString(lut_file_name, SOP_COLORLUT_FILE, 0, t);
 
     if(!lut_file_name || !lut_file_name.length())
@@ -130,44 +129,17 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
     }
 
     GA_AttributeOwner attribute_type = GA_ATTRIB_POINT;
-    switch(class_type)
+    if(!getClassType(t, attribute_type))
     {
-        case 0:
-        {
-            attribute_type = GA_ATTRIB_POINT;
-            break;
-        }
+        UT_WorkBuffer buf;
+        buf.sprintf("Unsupported attribute class type.");
+        addError(SOP_MESSAGE, buf.buffer());
 
-        case 1:
-        {
-            attribute_type = GA_ATTRIB_VERTEX;
-            break;
-        }
-
-        case 2:
-        {
-            attribute_type = GA_ATTRIB_PRIMITIVE;
-            break;
-        }
-
-        case 3:
-        {
-            attribute_type = GA_ATTRIB_DETAIL;
-            break;
-        }
-
-        default:
-        {
-            UT_WorkBuffer buf;
-            buf.sprintf("Unsupported attribute class type.");
-            addError(SOP_MESSAGE, buf.buffer());
-
-            unlockInputs();
-            return error();
-        }
+        unlockInputs();
+        return error();
     }
 
-    GA_RWHandleV3 attr_color = GA_RWHandleV3(gdp->findFloatTuple(GA_ATTRIB_POINT, "Cd", 3));
+    GA_RWHandleV3 attr_color = GA_RWHandleV3(gdp->findFloatTuple(attribute_type, "Cd", 3));
     if(!attr_color.isValid())
     {
         attr_color.bind(gdp->addFloatTuple(attribute_type, "Cd", 3));
@@ -215,10 +187,44 @@ SOP_ColorLUT::inputLabel(unsigned int idx) const
 }
 
 
-int
-SOP_ColorLUT::getClassType(fpreal t) const
+bool
+SOP_ColorLUT::getClassType(fpreal t, GA_AttributeOwner& attrib_owner) const
 {
-    return evalInt(SOP_COLORLUT_CLASS, 0, t);
+    int class_type = evalInt(SOP_COLORLUT_CLASS, 0, t);
+
+    switch(class_type)
+    {
+        case 0:
+        {
+            attrib_owner = GA_ATTRIB_POINT;
+            return true;
+        }
+
+        case 1:
+        {
+            attrib_owner = GA_ATTRIB_VERTEX;
+            return true;
+        }
+
+        case 2:
+        {
+            attrib_owner = GA_ATTRIB_PRIMITIVE;
+            return true;
+        }
+
+        case 3:
+        {
+            attrib_owner = GA_ATTRIB_DETAIL;
+            return true;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    return false;
 }
 
 
