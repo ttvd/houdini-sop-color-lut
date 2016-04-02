@@ -9,6 +9,7 @@
 #include <GEO/GEO_PrimPoly.h>
 #include <GU/GU_Detail.h>
 #include <PRM/PRM_SpareData.h>
+#include <FS/FS_Info.h>
 
 #define SOP_COLORLUT_CLASS "class"
 #define SOP_COLORLUT_FILE "file"
@@ -78,6 +79,31 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
 
     duplicatePointSource(0, context);
 
+    int class_type = getClassType(t);
+    UT_String lut_file_name;
+    evalString(lut_file_name, SOP_COLORLUT_FILE, 0, t);
+
+    if(!lut_file_name || !lut_file_name.length())
+    {
+        UT_WorkBuffer buf;
+        buf.sprintf("LUT file is not specified.");
+        addError(SOP_MESSAGE, buf.buffer());
+
+        unlockInputs();
+        return error();
+    }
+
+    FS_Info file_info(lut_file_name);
+    if(!file_info.exists())
+    {
+        UT_WorkBuffer buf;
+        buf.sprintf("Specified LUT file does not exist.");
+        addError(SOP_MESSAGE, buf.buffer());
+
+        unlockInputs();
+        return error();
+    }
+
     /*
     const GU_Detail* input_gdp = inputGeo(0);
     const GA_PrimitiveGroup* prim_group = nullptr;
@@ -107,6 +133,13 @@ const char*
 SOP_ColorLUT::inputLabel(unsigned int idx) const
 {
     return "Color LUT";
+}
+
+
+int
+SOP_ColorLUT::getClassType(fpreal t) const
+{
+    return evalInt(SOP_COLORLUT_CLASS, 0, t);
 }
 
 

@@ -23,4 +23,8 @@ class SOP_API SOP_ColorLUT : public SOP_Node
 
         virtual const char* inputLabel(unsigned int idx) const;
         virtual OP_ERROR cookMySop(OP_Context& context);
+
+    protected:
+
+        int getClassType(fpreal t) const;
 };
