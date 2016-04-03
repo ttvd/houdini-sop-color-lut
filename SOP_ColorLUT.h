@@ -32,6 +32,7 @@ class SOP_API SOP_ColorLUT : public SOP_Node
 
         bool getDefaultPalette(UT_Array<UT_Vector3>& palette) const;
         bool getPaletteVox(const char* file_vox, UT_Array<UT_Vector3>& palette) const;
+        bool getPalettePng(const char* file_png, UT_Array<UT_Vector3>& palette) const;
 
     protected:
 

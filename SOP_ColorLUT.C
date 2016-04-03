@@ -12,6 +12,8 @@
 #include <PRM/PRM_SpareData.h>
 #include <FS/FS_Info.h>
 #include <CH/CH_Manager.h>
+#include <IMG/IMG_File.h>
+#include <PXL/PXL_Raster.h>
 
 #define SOP_COLORLUT_USE_DEFAULT_PALETTE "lut_use_default_palette"
 #define SOP_COLORLUT_CLASS "class"
@@ -66,7 +68,7 @@ SOP_ColorLUT::myConstructor(OP_Network* network, const char* name, OP_Operator* 
 const char*
 SOP_ColorLUT::fileExtensionFilterString()
 {
-    return "*.vox";
+    return "*.vox *.png";
 }
 
 
@@ -183,6 +185,18 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
         if(lut_file_extension == ".vox")
         {
             if(!getPaletteVox(lut_file_name, lut_palette))
+            {
+                UT_WorkBuffer buf;
+                buf.sprintf("Error processing %s LUT file.", (const char*) lut_file_name);
+                addError(SOP_MESSAGE, buf.buffer());
+
+                unlockInputs();
+                return error();
+            }
+        }
+        if(lut_file_extension == ".png")
+        {
+            if(!getPalettePng(lut_file_name, lut_palette))
             {
                 UT_WorkBuffer buf;
                 buf.sprintf("Error processing %s LUT file.", (const char*) lut_file_name);
@@ -402,6 +416,62 @@ bool
 SOP_ColorLUT::getPaletteVox(const char* file_vox, UT_Array<UT_Vector3>& palette) const
 {
     return true;
+}
+
+
+
+bool
+SOP_ColorLUT::getPalettePng(const char* file_png, UT_Array<UT_Vector3>& palette) const
+{
+    bool png_result = true;
+
+    IMG_FileParms file_params;
+    file_params.setDataType(IMG_FLOAT32);
+    file_params.orientImage(IMG_ORIENT_LEFT_FIRST, IMG_ORIENT_TOP_FIRST);
+    file_params.setColorModel(IMG_RGB);
+    file_params.setInterleaved(IMG_INTERLEAVED);
+
+    IMG_File* file = IMG_File::open(file_png, &file_params);
+    if(file)
+    {
+        UT_ValArray<PXL_Raster*> images;
+        file->readImages(images);
+        if(images.entries() > 0 && images(0) && images(0)->isValid())
+        {
+            PXL_Raster* raster = images(0);
+            int raster_width = raster->getXres();
+            int raster_height = raster->getYres();
+            if(raster_width > 0 && raster_height > 0)
+            {
+                palette.append(UT_Vector3(0.0f, 0.0f, 0.0f));
+
+                const float* pixels = static_cast<const float*>(raster->getPixels());
+                for(int pix_idx = 0; pix_idx < raster_height * raster_width; ++pix_idx)
+                {
+                    UT_Vector3 pixel_color(pixels[pix_idx * 3 + 0], pixels[pix_idx * 3 + 1], pixels[pix_idx * 3 + 2]);
+                    palette.append(pixel_color);
+                }
+            }
+            else
+            {
+                png_result = false;
+            }
+
+            delete raster;
+        }
+        else
+        {
+            png_result = false;
+        }
+
+        delete file;
+    }
+    else
+    {
+        png_result = false;
+    }
+
+    return png_result;
 }
 
 

@@ -22,7 +22,8 @@
 ## Supported LUT formats
 
 * [MagicaVoxel](https://voxel.codeplex.com/) .vox 256 color palette (with fallback to default .vox palette).
-* [Houdini](http://www.sidefx.com/index.php) .lut and .blut formats.
+* --[Houdini](http://www.sidefx.com/index.php) .lut and .blut formats.--
+* .png files (either 1d or 2d, left/top order).
 
 ## Usage
 
