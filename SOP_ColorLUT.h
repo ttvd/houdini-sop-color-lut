@@ -42,4 +42,5 @@ class SOP_API SOP_ColorLUT : public SOP_Node
 
         bool getClassType(fpreal t, GA_AttributeOwner& attrib_owner) const;
         bool useDefaultPalette(fpreal t) const;
+        bool deleteOriginalLookUpAttribute(fpreal t) const;
 };

@@ -320,7 +320,10 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
         }
     }
 
-    //gdp->destroyAttribute(owner, GEO_STD_ATTRIB_NORMAL);
+    if(deleteOriginalLookUpAttribute(t))
+    {
+        gdp->destroyAttribute(attribute_type, lut_input_attribute);
+    }
 
     unlockInputs();
     return error();
@@ -338,6 +341,13 @@ bool
 SOP_ColorLUT::useDefaultPalette(fpreal t) const
 {
     return evalInt(SOP_COLORLUT_USE_DEFAULT_PALETTE, 0, t);
+}
+
+
+bool
+SOP_ColorLUT::deleteOriginalLookUpAttribute(fpreal t) const
+{
+    return evalInt(SOP_COLORLUT_DELETE_LUT_ATTRIBUTE, 0, t);
 }
 
 
