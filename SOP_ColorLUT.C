@@ -252,12 +252,11 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
 
         case GA_ATTRIB_VERTEX:
         {
-            const GA_PrimitiveGroup* prim_group = nullptr;
             GEO_Primitive* prim = nullptr;
             GA_Offset vertex_offset = 0;
             GA_Size vertex_count = 0;
 
-            GA_FOR_ALL_OPT_GROUP_PRIMITIVES(gdp, prim_group, prim)
+            GA_FOR_ALL_PRIMITIVES(gdp, prim)
             {
                 if(boss->opInterrupt())
                 {
@@ -279,11 +278,10 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
 
         case GA_ATTRIB_PRIMITIVE:
         {
-            const GA_PrimitiveGroup* prim_group = nullptr;
             GEO_Primitive* prim = nullptr;
             GA_Offset prim_offset = 0;
 
-            GA_FOR_ALL_OPT_GROUP_PRIMITIVES(gdp, prim_group, prim)
+            GA_FOR_ALL_PRIMITIVES(gdp, prim)
             {
                 if(boss->opInterrupt())
                 {
