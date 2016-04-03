@@ -23,7 +23,7 @@
 #define SOP_COLORLUT_DELETE_LUT_ATTRIBUTE "delete_lut_attribute"
 #define SOP_COLORLUT_COLOR_ATTRIBUTE "Cd"
 
-static PRM_Name s_name_use_default_palette(SOP_COLORLUT_USE_DEFAULT_PALETTE, "Use the Default 256 Palette");
+static PRM_Name s_name_use_default_palette(SOP_COLORLUT_USE_DEFAULT_PALETTE, "Use the Default 256 Color Palette");
 static PRM_Name s_name_file(SOP_COLORLUT_FILE, "LUT File");
 static PRM_Name s_name_class(SOP_COLORLUT_CLASS, "Class");
 static PRM_Name s_name_lut_attribute_name(SOP_COLORLUT_INPUT_ATTRIBUTE_NAME, "LUT Attribute Name");
