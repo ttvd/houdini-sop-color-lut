@@ -35,6 +35,7 @@ class SOP_API SOP_ColorLUT : public SOP_Node
 
     protected:
 
+        int getAttributeValue(const GA_ROHandleI& attr_input_int, const GA_ROHandleF& attr_input_float, GA_Offset offset);
         UT_Vector3 lookupPaletteColor(const UT_Array<UT_Vector3>& lut_palette, int lut_value) const;
 
     protected:

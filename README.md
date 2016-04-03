@@ -23,7 +23,6 @@
 
 * [MagicaVoxel](https://voxel.codeplex.com/) .vox (with fallback to default .vox palette).
 * [Houdini](http://www.sidefx.com/index.php) .lut and .blut formats.
-* 1 dimensional .png image format.
 
 ## Usage
 

@@ -237,35 +237,75 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
             GA_Offset point_offset = 0;
             GA_FOR_ALL_PTOFF(gdp, point_offset)
             {
-                int lut_value = 0;
-                if(attr_input_int.isValid())
+                if(boss->opInterrupt())
                 {
-                    lut_value = attr_input_int.get(point_offset);
-                }
-                else if(attr_input_float.isValid())
-                {
-                    lut_value = (int) attr_input_float.get(point_offset);
+                    break;
                 }
 
-                UT_Vector3 point_color = lookupPaletteColor(lut_palette, lut_value);
-                attr_color.set(point_offset, point_color);
+                int lut_value = getAttributeValue(attr_input_int, attr_input_float, point_offset);
+                attr_color.set(point_offset, lookupPaletteColor(lut_palette, lut_value));
             }
 
+            attr_color.bumpDataId();
             break;
         }
 
         case GA_ATTRIB_VERTEX:
         {
+            const GA_PrimitiveGroup* prim_group = nullptr;
+            GEO_Primitive* prim = nullptr;
+            GA_Offset vertex_offset = 0;
+            GA_Size vertex_count = 0;
+
+            GA_FOR_ALL_OPT_GROUP_PRIMITIVES(gdp, prim_group, prim)
+            {
+                if(boss->opInterrupt())
+                {
+                    break;
+                }
+
+                vertex_count = prim->getVertexCount();
+                for(int vtx_idx = 0; vtx_idx < vertex_count; ++vtx_idx)
+                {
+                    vertex_offset = prim->getVertexOffset(vtx_idx);
+                    int lut_value = getAttributeValue(attr_input_int, attr_input_float, vertex_offset);
+                    attr_color.set(vertex_offset, lookupPaletteColor(lut_palette, lut_value));
+                }
+            }
+
+            attr_color.bumpDataId();
             break;
         }
 
         case GA_ATTRIB_PRIMITIVE:
         {
+            const GA_PrimitiveGroup* prim_group = nullptr;
+            GEO_Primitive* prim = nullptr;
+            GA_Offset prim_offset = 0;
+
+            GA_FOR_ALL_OPT_GROUP_PRIMITIVES(gdp, prim_group, prim)
+            {
+                if(boss->opInterrupt())
+                {
+                    break;
+                }
+
+                prim_offset = prim->getMapOffset();
+
+                int lut_value = getAttributeValue(attr_input_int, attr_input_float, prim_offset);
+                attr_color.set(prim_offset, lookupPaletteColor(lut_palette, lut_value));
+            }
+
+            attr_color.bumpDataId();
             break;
         }
 
         case GA_ATTRIB_DETAIL:
         {
+            int lut_value = getAttributeValue(attr_input_int, attr_input_float, GA_Offset(0));
+            attr_color.set(GA_Offset(0), lookupPaletteColor(lut_palette, lut_value));
+
+            attr_color.bumpDataId();
             break;
         }
 
@@ -280,24 +320,7 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
         }
     }
 
-    /*
-    const GA_PrimitiveGroup* prim_group = nullptr;
-    GEO_Primitive* prim = nullptr;
-
-    GA_FOR_ALL_OPT_GROUP_PRIMITIVES(gdp, prim_group, prim)
-    {
-        if(boss->opInterrupt())
-        {
-            break;
-        }
-
-        if(prim->getTypeId() == GEO_PRIMPOLY)
-        {
-            GEO_PrimVolume* volume = (GEO_PrimVolume *) prim;
-            volumes.append(volume);
-        }
-    }
-    */
+    //gdp->destroyAttribute(owner, GEO_STD_ATTRIB_NORMAL);
 
     unlockInputs();
     return error();
@@ -371,6 +394,24 @@ bool
 SOP_ColorLUT::getPaletteVox(const char* file_vox, UT_Array<UT_Vector3>& palette) const
 {
     return true;
+}
+
+
+int
+SOP_ColorLUT::getAttributeValue(const GA_ROHandleI& attr_input_int, const GA_ROHandleF& attr_input_float, GA_Offset offset)
+{
+    int lut_value = 0;
+
+    if(attr_input_int.isValid())
+    {
+        lut_value = attr_input_int.get(offset);
+    }
+    else if(attr_input_float.isValid())
+    {
+        lut_value = (int) attr_input_float.get(offset);
+    }
+
+    return lut_value;
 }
 
 
