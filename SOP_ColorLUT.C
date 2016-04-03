@@ -18,6 +18,7 @@
 #define SOP_COLORLUT_USE_DEFAULT_PALETTE "lut_use_default_palette"
 #define SOP_COLORLUT_CLASS "class"
 #define SOP_COLORLUT_FILE "file"
+#define SOP_COLORLUT_SAMPLING "lut_sampling"
 #define SOP_COLORLUT_INPUT_ATTRIBUTE_NAME "lut_attributename"
 #define SOP_COLORLUT_INPUT_ATTRIBUTE_NAME_DEFAULT "color_lut"
 #define SOP_COLORLUT_DELETE_LUT_ATTRIBUTE "delete_lut_attribute"
@@ -26,6 +27,7 @@
 static PRM_Name s_name_use_default_palette(SOP_COLORLUT_USE_DEFAULT_PALETTE, "Use the Default 256 Color Palette");
 static PRM_Name s_name_file(SOP_COLORLUT_FILE, "LUT File");
 static PRM_Name s_name_class(SOP_COLORLUT_CLASS, "Class");
+static PRM_Name s_name_sampling(SOP_COLORLUT_SAMPLING, "LUT Sampling");
 static PRM_Name s_name_lut_attribute_name(SOP_COLORLUT_INPUT_ATTRIBUTE_NAME, "LUT Attribute Name");
 static PRM_Name s_name_delete_lut_attribute(SOP_COLORLUT_DELETE_LUT_ATTRIBUTE, "Delete LUT Attribute");
 static PRM_Name s_name_class_types[] =
@@ -36,8 +38,15 @@ static PRM_Name s_name_class_types[] =
     PRM_Name("detail", "Detail"),
     PRM_Name(0),
 };
+static PRM_Name s_name_sampling_types[] =
+{
+    PRM_Name("clamp", "Clamp"),
+    PRM_Name("wrap", "Wrap"),
+    PRM_Name(0),
+};
 
 static PRM_ChoiceList s_choicelist_class_type(PRM_CHOICELIST_SINGLE, s_name_class_types);
+static PRM_ChoiceList s_choicelist_sampling_type(PRM_CHOICELIST_SINGLE, s_name_sampling_types);
 static PRM_SpareData s_spare_file_picker(PRM_SpareArgs() << PRM_SpareToken(PRM_SpareData::getFileChooserModeToken(),
     PRM_SpareData::getFileChooserModeValRead()) << PRM_SpareToken(PRM_SpareData::getFileChooserPatternToken(),
     SOP_ColorLUT::fileExtensionFilterString()));
@@ -52,6 +61,7 @@ SOP_ColorLUT::myTemplateList[] = {
     PRM_Template(PRM_TOGGLE, 1, &s_name_use_default_palette, &s_default_use_default_palette),
     PRM_Template(PRM_FILE, 1, &s_name_file, 0, 0, 0, 0, &s_spare_file_picker),
     PRM_Template(PRM_ORD, 1, &s_name_class, 0, &s_choicelist_class_type),
+    PRM_Template(PRM_ORD, 1, &s_name_sampling, 0, &s_choicelist_sampling_type),
     PRM_Template(PRM_STRING, 1, &s_name_lut_attribute_name, &s_default_lut_attribute_name),
     PRM_Template(PRM_TOGGLE, 1, &s_name_delete_lut_attribute, &s_default_delete_lut_attribute),
     PRM_Template()
@@ -102,6 +112,7 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
     fpreal t = context.getTime();
     UT_Interrupt* boss = UTgetInterrupt();
     bool use_default_palette = useDefaultPalette(t);
+    int sampling_type = getSamplingType(t);
 
     UT_String lut_file_name;
     UT_Array<UT_Vector3> lut_palette;
@@ -257,7 +268,7 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
                 }
 
                 int lut_value = getAttributeValue(attr_input_int, attr_input_float, point_offset);
-                attr_color.set(point_offset, lookupPaletteColor(lut_palette, lut_value));
+                attr_color.set(point_offset, lookupPaletteColor(sampling_type, lut_palette, lut_value));
             }
 
             attr_color.bumpDataId();
@@ -282,7 +293,7 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
                 {
                     vertex_offset = prim->getVertexOffset(vtx_idx);
                     int lut_value = getAttributeValue(attr_input_int, attr_input_float, vertex_offset);
-                    attr_color.set(vertex_offset, lookupPaletteColor(lut_palette, lut_value));
+                    attr_color.set(vertex_offset, lookupPaletteColor(sampling_type, lut_palette, lut_value));
                 }
             }
 
@@ -305,7 +316,7 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
                 prim_offset = prim->getMapOffset();
 
                 int lut_value = getAttributeValue(attr_input_int, attr_input_float, prim_offset);
-                attr_color.set(prim_offset, lookupPaletteColor(lut_palette, lut_value));
+                attr_color.set(prim_offset, lookupPaletteColor(sampling_type, lut_palette, lut_value));
             }
 
             attr_color.bumpDataId();
@@ -315,7 +326,7 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
         case GA_ATTRIB_DETAIL:
         {
             int lut_value = getAttributeValue(attr_input_int, attr_input_float, GA_Offset(0));
-            attr_color.set(GA_Offset(0), lookupPaletteColor(lut_palette, lut_value));
+            attr_color.set(GA_Offset(0), lookupPaletteColor(sampling_type, lut_palette, lut_value));
 
             attr_color.bumpDataId();
             break;
@@ -360,6 +371,13 @@ bool
 SOP_ColorLUT::deleteOriginalLookUpAttribute(fpreal t) const
 {
     return evalInt(SOP_COLORLUT_DELETE_LUT_ATTRIBUTE, 0, t);
+}
+
+
+int
+SOP_ColorLUT::getSamplingType(fpreal t) const
+{
+    return evalInt(SOP_COLORLUT_SAMPLING, 0, t);
 }
 
 
@@ -494,10 +512,27 @@ SOP_ColorLUT::getAttributeValue(const GA_ROHandleI& attr_input_int, const GA_ROH
 
 
 UT_Vector3
-SOP_ColorLUT::lookupPaletteColor(const UT_Array<UT_Vector3>& lut_palette, int lut_value) const
+SOP_ColorLUT::lookupPaletteColor(int sampling_type, const UT_Array<UT_Vector3>& lut_palette, int lut_value) const
 {
-    int lut_value_clamp = SYSclamp(lut_value, 0, (int) lut_palette.size() - 1);
-    return lut_palette(lut_value_clamp);
+    int lut_value_final = 0;
+
+    switch(sampling_type)
+    {
+        default:
+        case 0:
+        {
+            lut_value_final = SYSclamp(lut_value, 0, (int) lut_palette.size() - 1);
+            break;
+        }
+
+        case 1:
+        {
+            lut_value_final = lut_value % lut_palette.size();
+            break;
+        }
+    }
+
+    return lut_palette(lut_value_final);
 }
 
 

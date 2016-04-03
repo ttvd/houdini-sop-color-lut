@@ -2,7 +2,7 @@
 
 [Houdini](http://www.sidefx.com/index.php) SOP node which loads the LUT color data and applies it to geometry.
 
-![houdini-sop-color-lut screenshot](http://i.imgur.com/mIiqvG5.png)
+![houdini-sop-color-lut screenshot](http://i.imgur.com/h4A6u2c.png)
 
 ## Binaries, Houdini 15
 * Mac OS X - Todo.
@@ -31,6 +31,7 @@
 * If enabled, the default 256 color palette will be used (default [MagicaVoxel](https://voxel.codeplex.com/) palette).
 * Optionally, specify file path to a supported LUT file (please see the list of supported formats).
 * Specify class of attribute (point, vertex, primitive or detail).
+* Specify sampling behavior (clamp or wrap).
 * Specify LUT input attribute name. These values will be used to index into LUT. This can be either an integer or a float attribute.
 * Specify to optionally remove the input LUT attribute.
 
