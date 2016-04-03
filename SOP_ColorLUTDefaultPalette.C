@@ -50,7 +50,7 @@ SOP_ColorLUTDefaultPalette::s_palette[256u] =
 
 
 void
-SOP_ColorLUTDefaultPalette::GetPalette(UT_Array<UT_Color>& palette)
+SOP_ColorLUTDefaultPalette::GetPalette(UT_Array<UT_Vector3>& palette)
 {
     palette.clear();
 
@@ -70,7 +70,7 @@ SOP_ColorLUTDefaultPalette::GetPalette(UT_Array<UT_Color>& palette)
 
         u.data = SOP_ColorLUTDefaultPalette::s_palette[idx];
 
-        UT_Color color(UT_RGB, SYSclamp(u.r, 0, 255) / 255.0f, SYSclamp(u.g, 0, 255) / 255.0f, SYSclamp(u.b, 0, 255) / 255.0f);
+        UT_Vector3 color(SYSclamp(u.r, 0, 255) / 255.0f, SYSclamp(u.g, 0, 255) / 255.0f, SYSclamp(u.b, 0, 255) / 255.0f);
         palette.append(color);
     }
 }

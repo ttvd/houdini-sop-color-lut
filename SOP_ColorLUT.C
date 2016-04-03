@@ -102,7 +102,7 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
     bool use_default_palette = useDefaultPalette(t);
 
     UT_String lut_file_name;
-    UT_Array<UT_Color> lut_palette;
+    UT_Array<UT_Vector3> lut_palette;
 
     if(lockInputs(context) >= UT_ERROR_ABORT)
     {
@@ -203,6 +203,16 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
         }
     }
 
+    if(!lut_palette.size())
+    {
+        UT_WorkBuffer buf;
+        buf.sprintf("Empty palette found, invalid.");
+        addError(SOP_MESSAGE, buf.buffer());
+
+        unlockInputs();
+        return error();
+    }
+
     GA_RWHandleV3 attr_color = GA_RWHandleV3(gdp->findFloatTuple(attribute_type, SOP_COLORLUT_COLOR_ATTRIBUTE, 3));
     if(!attr_color.isValid())
     {
@@ -219,19 +229,69 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
         }
     }
 
+    bool create_result = true;
+    switch(attribute_type)
+    {
+        case GA_ATTRIB_POINT:
+        {
+            GA_Offset point_offset = 0;
+            GA_FOR_ALL_PTOFF(gdp, point_offset)
+            {
+                int lut_value = 0;
+                if(attr_input_int.isValid())
+                {
+                    lut_value = attr_input_int.get(point_offset);
+                }
+                else if(attr_input_float.isValid())
+                {
+                    lut_value = (int) attr_input_float.get(point_offset);
+                }
+
+                UT_Vector3 point_color = lookupPaletteColor(lut_palette, lut_value);
+                attr_color.set(point_offset, point_color);
+            }
+
+            break;
+        }
+
+        case GA_ATTRIB_VERTEX:
+        {
+            break;
+        }
+
+        case GA_ATTRIB_PRIMITIVE:
+        {
+            break;
+        }
+
+        case GA_ATTRIB_DETAIL:
+        {
+            break;
+        }
+
+        default:
+        {
+            UT_WorkBuffer buf;
+            buf.sprintf("Unsupported attribute class type.");
+            addError(SOP_MESSAGE, buf.buffer());
+
+            unlockInputs();
+            return error();
+        }
+    }
+
     /*
-    const GU_Detail* input_gdp = inputGeo(0);
     const GA_PrimitiveGroup* prim_group = nullptr;
     GEO_Primitive* prim = nullptr;
 
-    GA_FOR_ALL_OPT_GROUP_PRIMITIVES(input_gdp, prim_group, prim)
+    GA_FOR_ALL_OPT_GROUP_PRIMITIVES(gdp, prim_group, prim)
     {
         if(boss->opInterrupt())
         {
             break;
         }
 
-        if(prim->getTypeId() == GEO_PRIMVOLUME)
+        if(prim->getTypeId() == GEO_PRIMPOLY)
         {
             GEO_PrimVolume* volume = (GEO_PrimVolume *) prim;
             volumes.append(volume);
@@ -300,7 +360,7 @@ SOP_ColorLUT::getClassType(fpreal t, GA_AttributeOwner& attrib_owner) const
 
 
 bool
-SOP_ColorLUT::getDefaultPalette(UT_Array<UT_Color>& palette) const
+SOP_ColorLUT::getDefaultPalette(UT_Array<UT_Vector3>& palette) const
 {
     SOP_ColorLUTDefaultPalette::GetPalette(palette);
     return true;
@@ -308,9 +368,17 @@ SOP_ColorLUT::getDefaultPalette(UT_Array<UT_Color>& palette) const
 
 
 bool
-SOP_ColorLUT::getPaletteVox(const char* file_vox, UT_Array<UT_Color>& palette) const
+SOP_ColorLUT::getPaletteVox(const char* file_vox, UT_Array<UT_Vector3>& palette) const
 {
     return true;
+}
+
+
+UT_Vector3
+SOP_ColorLUT::lookupPaletteColor(const UT_Array<UT_Vector3>& lut_palette, int lut_value) const
+{
+    int lut_value_clamp = SYSclamp(lut_value, 0, (int) lut_palette.size() - 1);
+    return lut_palette(lut_value_clamp);
 }
 
 
