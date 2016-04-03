@@ -2,7 +2,7 @@
 
 [Houdini](http://www.sidefx.com/index.php) SOP node which loads the LUT color data and applies it to geometry.
 
-![houdini-sop-color-lut screenshot](http://i.imgur.com/dHNB4uj.png)
+![houdini-sop-color-lut screenshot](http://i.imgur.com/mIiqvG5.png)
 
 ## Binaries, Houdini 15
 * Mac OS X - Todo.
