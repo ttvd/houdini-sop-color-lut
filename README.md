@@ -22,8 +22,7 @@
 ## Supported LUT formats
 
 * [MagicaVoxel](https://voxel.codeplex.com/) .vox 256 color palette (with fallback to default .vox palette).
-* --[Houdini](http://www.sidefx.com/index.php) .lut and .blut formats.--
-* .png files (either 1d or 2d, left/top order).
+* .png files (either 1d (left to right) or 2d (left/top sequential order)).
 
 ## Usage
 
@@ -34,6 +33,10 @@
 * Specify sampling behavior (clamp or wrap).
 * Specify LUT input attribute name. These values will be used to index into LUT. This can be either an integer or a float attribute.
 * Specify to optionally remove the input LUT attribute.
+
+## Future work
+
+* Add support for [Houdini](http://www.sidefx.com/index.php) .lut and .blut formats.
 
 ## License
 

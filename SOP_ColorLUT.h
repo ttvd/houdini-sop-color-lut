@@ -31,7 +31,28 @@ class SOP_API SOP_ColorLUT : public SOP_Node
     protected:
 
         bool getDefaultPalette(UT_Array<UT_Vector3>& palette) const;
+
+    protected:
+
         bool getPaletteVox(const char* file_vox, UT_Array<UT_Vector3>& palette) const;
+        bool getPaletteVoxMagic(UT_IFStream& stream) const;
+        bool getPaletteVoxVersion(UT_IFStream& stream) const;
+        bool getPaletteVoxChunk(UT_IFStream& stream, unsigned int& chunk_id, unsigned int& content_size,
+            unsigned int& children_chunk_size) const;
+        bool getPaletteVoxColor(UT_IFStream& stream, unsigned char& r, unsigned char& g, unsigned char& b,
+            unsigned char& a) const;
+
+        //! Magic numbers used by the parser.
+        static const unsigned int s_vox_magic;
+        static const unsigned int s_vox_main;
+        static const unsigned int s_vox_size;
+        static const unsigned int s_vox_xyzi;
+        static const unsigned int s_vox_rgba;
+        static const unsigned int s_vox_version;
+        static const unsigned int s_vox_palette_size;
+
+    protected:
+
         bool getPalettePng(const char* file_png, UT_Array<UT_Vector3>& palette) const;
 
     protected:

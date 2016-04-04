@@ -15,6 +15,17 @@
 #include <IMG/IMG_File.h>
 #include <PXL/PXL_Raster.h>
 
+#define SOP_COLORLUT_MAKE_ID(A, B, C, D) ( A ) | ( B << 8 ) | ( C << 16 ) | ( D << 24 )
+
+const unsigned int SOP_ColorLUT::s_vox_magic = SOP_COLORLUT_MAKE_ID('V', 'O', 'X', ' ');
+const unsigned int SOP_ColorLUT::s_vox_main = SOP_COLORLUT_MAKE_ID('M', 'A', 'I', 'N');
+const unsigned int SOP_ColorLUT::s_vox_size = SOP_COLORLUT_MAKE_ID('S', 'I', 'Z', 'E');
+const unsigned int SOP_ColorLUT::s_vox_xyzi = SOP_COLORLUT_MAKE_ID('X', 'Y', 'Z', 'I');
+const unsigned int SOP_ColorLUT::s_vox_rgba = SOP_COLORLUT_MAKE_ID('R', 'G', 'B', 'A');
+
+const unsigned int SOP_ColorLUT::s_vox_version = 150u;
+const unsigned int SOP_ColorLUT::s_vox_palette_size = 256u;
+
 #define SOP_COLORLUT_USE_DEFAULT_PALETTE "lut_use_default_palette"
 #define SOP_COLORLUT_CLASS "class"
 #define SOP_COLORLUT_FILE "file"
@@ -197,15 +208,24 @@ SOP_ColorLUT::cookMySop(OP_Context& context)
         {
             if(!getPaletteVox(lut_file_name, lut_palette))
             {
-                UT_WorkBuffer buf;
-                buf.sprintf("Error processing %s LUT file.", (const char*) lut_file_name);
-                addError(SOP_MESSAGE, buf.buffer());
+                lut_palette.clear();
+                getDefaultPalette(lut_palette);
 
-                unlockInputs();
-                return error();
+                UT_WorkBuffer buf;
+                buf.sprintf("Error getting palette from %s LUT file. Using default instead.", (const char*) lut_file_name);
+                addWarning(SOP_MESSAGE, buf.buffer());
+            }
+
+            if(!lut_palette.size())
+            {
+                getDefaultPalette(lut_palette);
+
+                UT_WorkBuffer buf;
+                buf.sprintf("Empty palette found in %s LUT file. Using default instead.", (const char*) lut_file_name);
+                addWarning(SOP_MESSAGE, buf.buffer());
             }
         }
-        if(lut_file_extension == ".png")
+        else if(lut_file_extension == ".png")
         {
             if(!getPalettePng(lut_file_name, lut_palette))
             {
@@ -433,14 +453,185 @@ SOP_ColorLUT::getDefaultPalette(UT_Array<UT_Vector3>& palette) const
 bool
 SOP_ColorLUT::getPaletteVox(const char* file_vox, UT_Array<UT_Vector3>& palette) const
 {
+    palette.clear();
+    UT_IFStream stream(file_vox, UT_ISTREAM_BINARY);
+
+    if(!stream.isError())
+    {
+        if(!getPaletteVoxMagic(stream))
+        {
+            stream.close();
+            return false;
+        }
+
+        if(!getPaletteVoxVersion(stream))
+        {
+            stream.close();
+            return false;
+        }
+
+        unsigned int main_chunk_id, main_contents_size, main_children_chunk_size;
+        if(!getPaletteVoxChunk(stream, main_chunk_id, main_contents_size, main_children_chunk_size))
+        {
+            stream.close();
+            return false;
+        }
+
+        if(SOP_ColorLUT::s_vox_main != main_chunk_id)
+        {
+            stream.close();
+            return false;
+        }
+
+        if(!stream.seekg(main_contents_size, UT_IStream::UT_SEEK_CUR))
+        {
+            stream.close();
+            return false;
+        }
+
+        while(!stream.isEof())
+        {
+            unsigned int chunk_id, chunk_contents_size, children_chunk_size;
+            if(!getPaletteVoxChunk(stream, chunk_id, chunk_contents_size, children_chunk_size))
+            {
+                break;
+            }
+
+            if(SOP_ColorLUT::s_vox_rgba != chunk_id)
+            {
+                if(!stream.seekg(chunk_contents_size, UT_IStream::UT_SEEK_CUR))
+                {
+                    stream.close();
+                    return false;
+                }
+            }
+            else
+            {
+                for(unsigned int color_idx = 0u; color_idx < 256u; ++color_idx)
+                {
+                    unsigned char r, g, b, a;
+                    if(!getPaletteVoxColor(stream, r, g, b, a))
+                    {
+                        stream.close();
+                        return false;
+                    }
+
+                    UT_Vector3 palette_color(SYSclamp(r, 0, 255) / 255.0f, SYSclamp(g, 0, 255) / 255.0f,
+                        SYSclamp(b, 0, 255) / 255.0f);
+                    palette.append(palette_color);
+                }
+            }
+        }
+    }
+    else
+    {
+        return false;
+    }
+
+    stream.close();
     return true;
 }
 
+bool
+SOP_ColorLUT::getPaletteVoxMagic(UT_IFStream& stream) const
+{
+    unsigned int vox_magic_number = 0u;
+    if(stream.bread(&vox_magic_number) != 1)
+    {
+        return false;
+    }
+
+    UTswap_int32(vox_magic_number, vox_magic_number);
+
+    if(SOP_ColorLUT::s_vox_magic != vox_magic_number)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+
+bool
+SOP_ColorLUT::getPaletteVoxVersion(UT_IFStream& stream) const
+{
+    unsigned int vox_version = 0;
+    if(stream.bread(&vox_version) != 1)
+    {
+        return false;
+    }
+
+    UTswap_int32(vox_version, vox_version);
+    if(SOP_ColorLUT::s_vox_version != vox_version)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+
+bool
+SOP_ColorLUT::getPaletteVoxChunk(UT_IFStream& stream, unsigned int& chunk_id, unsigned int& content_size,
+    unsigned int& children_chunk_size) const
+{
+    if(stream.bread(&chunk_id) != 1)
+    {
+        return false;
+    }
+
+    UTswap_int32(chunk_id, chunk_id);
+
+    if(stream.bread(&content_size) != 1)
+    {
+        return false;
+    }
+
+    UTswap_int32(content_size, content_size);
+
+    if(stream.bread(&children_chunk_size) != 1)
+    {
+        return false;
+    }
+
+    UTswap_int32(children_chunk_size, children_chunk_size);
+
+    return true;
+}
+
+
+bool
+SOP_ColorLUT::getPaletteVoxColor(UT_IFStream& stream, unsigned char& r, unsigned char& g, unsigned char& b,
+    unsigned char& a) const
+{
+    if(stream.bread(&r) != 1)
+    {
+        return false;
+    }
+
+    if(stream.bread(&g) != 1)
+    {
+        return false;
+    }
+
+    if(stream.bread(&b) != 1)
+    {
+        return false;
+    }
+
+    if(stream.bread(&a) != 1)
+    {
+        return false;
+    }
+
+    return true;
+}
 
 
 bool
 SOP_ColorLUT::getPalettePng(const char* file_png, UT_Array<UT_Vector3>& palette) const
 {
+    palette.clear();
     bool png_result = true;
 
     IMG_FileParms file_params;
