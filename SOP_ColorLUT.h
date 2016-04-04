@@ -3,8 +3,6 @@
 #include <SOP/SOP_API.h>
 #include <SOP/SOP_Node.h>
 
-class GEO_PrimVolume;
-
 class SOP_API SOP_ColorLUT : public SOP_Node
 {
     public:
