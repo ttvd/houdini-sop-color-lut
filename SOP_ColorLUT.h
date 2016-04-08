@@ -3,7 +3,7 @@
 #include <SOP/SOP_API.h>
 #include <SOP/SOP_Node.h>
 
-class SOP_API SOP_ColorLUT : public SOP_Node
+class SOP_ColorLUT : public SOP_Node
 {
     public:
 

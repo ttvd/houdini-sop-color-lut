@@ -5,19 +5,20 @@
 ![houdini-sop-color-lut screenshot](http://i.imgur.com/h4A6u2c.png)
 
 ## Binaries, Houdini 15
-* Mac OS X - Todo.
-* Windows - Todo.
+* [Mac OS X, Houdini 15.0.434](https://github.com/ttvd/houdini-sop-color-lut/releases/download/1.0/houdini.sop.color.lut.15.0.434.osx.tar.gz)
+* [Windows, Houdini 15.0.440](https://github.com/ttvd/houdini-sop-color-lut/releases/download/1.0/houdini.sop.color.lut.15.0.440.win.rar)
 
 ## Building
 
-* Tested on OS X 10.11 and Houdini 15.
-  * You would have to patch CMake file to get this building on Windows or Linux.
+* Tested on OS X 10.11 / Windows and Houdini 15.
+  * You would have to patch CMake file to get this building on Linux.
 * Define HOUDINI_VERSION env variable to be the version of Houdini 15 you wish to build against (for example "15.0.313").
 * Alternatively, you can have HFS env variable defined (set when you source houdini_setup).
-* Generate build files from CMake for your favorite build system.
+* Generate build files from CMake for your favorite build system. For Windows builds use MSVC 2012.
 * Build the SOP Houdini dso (SOP_ColorLUT.dylib or SOP_ColorLUT.dll).
 * Place the dso in the appropriate Houdini dso folder.
   * On OS X this would be /Users/your_username/Library/Preferences/houdini/15.0/dso/
+  * On Windows this would be C:\Users\your_username\Documents\houdini15.0\dso
 
 ## Supported LUT formats
 
