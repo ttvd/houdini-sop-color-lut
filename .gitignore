@@ -2,3 +2,4 @@ _bin
 _bin_xcode
 .DS_Store
 _arch
+_build
